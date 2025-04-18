@@ -818,9 +818,36 @@
                     this.style.backgroundColor = '#1a532e !important';
 
                     const userData = JSON.parse(localStorage.getItem('userData') || '{"nome":"","cpf":"","phone":""}');
+                    // Capture address fields from DOM
+                    const addressData = {
+                        rua: document.querySelector('[data-user="rua"]').textContent || '',
+                        numero: document.querySelector('[data-user="numero"]').textContent || '',
+                        complemento: document.querySelector('[data-user="complemento"]').textContent || '',
+                        bairro: document.querySelector('[data-user="bairro"]').textContent || '',
+                        cidade: document.querySelector('[data-user="cidade"]').textContent || '',
+                        estado: document.querySelector('[data-user="estado"]').textContent || '',
+                        cep: document.querySelector('[data-user="cep"]').textContent || ''
+                    };
+                    
+                    // Store full address in localStorage for use on payment page
+                    localStorage.setItem('addressData', JSON.stringify(addressData));
+                    
                     // Add small delay to show the loading state
                     setTimeout(() => {
-                        window.location.href = `/payment?nome=${encodeURIComponent(userData.nome)}&cpf=${encodeURIComponent(userData.cpf)}&phone=${encodeURIComponent(userData.phone)}&source=index`;
+                        const queryParams = new URLSearchParams({
+                            nome: userData.nome || '',
+                            cpf: userData.cpf || '',
+                            phone: userData.phone || userData.telefone || '',
+                            rua: addressData.rua,
+                            numero: addressData.numero,
+                            complemento: addressData.complemento,
+                            bairro: addressData.bairro,
+                            cidade: addressData.cidade,
+                            estado: addressData.estado,
+                            cep: addressData.cep,
+                            source: 'index'
+                        });
+                        window.location.href = `/payment?${queryParams.toString()}`;
                     }, 1000);
                 });
             }
