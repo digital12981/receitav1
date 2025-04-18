@@ -121,6 +121,28 @@ def payment():
         cpf = request.args.get('cpf')
         phone = request.args.get('phone')  # Get phone from query params
         source = request.args.get('source', 'index')
+        
+        # Obter dados de endereço
+        rua = request.args.get('rua', '')
+        numero = request.args.get('numero', '')
+        complemento = request.args.get('complemento', '')
+        bairro = request.args.get('bairro', '')
+        cidade = request.args.get('cidade', '')
+        estado = request.args.get('estado', '')
+        cep = request.args.get('cep', '')
+        
+        # Criar objeto de endereço para passar ao template
+        endereco = {
+            'rua': rua,
+            'numero': numero,
+            'complemento': complemento,
+            'bairro': bairro,
+            'cidade': cidade,
+            'estado': estado,
+            'cep': cep
+        }
+        
+        app.logger.info(f"[PROD] Endereço do cliente: {endereco}")
 
         if not nome or not cpf:
             app.logger.error("[PROD] Nome ou CPF não fornecidos")
@@ -169,6 +191,7 @@ def payment():
                          pix_code=pix_data['pixCode'], 
                          nome=nome, 
                          cpf=format_cpf(cpf),
+                         endereco=endereco,
                          transaction_id=pix_data['id'],
                          amount=amount)
 

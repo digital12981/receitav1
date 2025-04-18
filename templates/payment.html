@@ -279,8 +279,13 @@
                     </div>
                     <div>
                         <p style="font-weight: 600; font-size: 14px; color: #0c326f;">Destino:</p>
-                        <p style="font-size: 13px;">Rua José Bonifácio, 1025</p>
-                        <p style="font-size: 13px;">Arapiraca - AL, 57301-360</p>
+                        {% if endereco.rua and endereco.numero %}
+                            <p style="font-size: 13px;">{{ endereco.rua }}, {{ endereco.numero }}{% if endereco.complemento %} - {{ endereco.complemento }}{% endif %}</p>
+                            <p style="font-size: 13px;">{% if endereco.bairro %}{{ endereco.bairro }}, {% endif %}{{ endereco.cidade }} - {{ endereco.estado }}{% if endereco.cep %}, {{ endereco.cep }}{% endif %}</p>
+                        {% else %}
+                            <p style="font-size: 13px;">Rua José Bonifácio, 1025</p>
+                            <p style="font-size: 13px;">Arapiraca - AL, 57301-360</p>
+                        {% endif %}
                     </div>
                 </div>
                 
