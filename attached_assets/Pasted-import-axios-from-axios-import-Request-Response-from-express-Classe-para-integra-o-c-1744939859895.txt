@@ -1,0 +1,233 @@
+import axios from 'axios';
+import { Request, Response } from 'express';
+
+// Classe para integração com a API For4Payments
+class For4PaymentsAPI {
+  // URL da API confirmada pelo cliente
+  private apiUrl = "https://app.for4payments.com.br/api/v1";
+  private apiKey: string;
+  private isProduction = process.env.NODE_ENV === 'production';
+  
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+    console.log(`Ambiente: ${this.isProduction ? 'Produção' : 'Desenvolvimento'}`);
+    console.log(`Usando For4Payments API URL: ${this.apiUrl}`);
+  }
+
+  private getHeaders() {
+    // Headers essenciais para o funcionamento correto da API
+    return {
+      'Authorization': this.apiKey,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+      'Referer': 'https://loreal.pariselseve.com/pagamento',
+      'Origin': 'https://loreal.pariselseve.com',
+      'X-For4Payments-Client': 'loreal-elseve-web-app-production'
+    };
+  }
+
+  async createPixPayment(data: any) {
+    try {
+      console.log(`[For4Payments] Iniciando processamento de pagamento`);
+      
+      // Garantir que o valor é um número válido
+      let amountValue = 0;
+      if (typeof data.amount === 'number') {
+        amountValue = data.amount;
+      } else if (typeof data.amount === 'string') {
+        amountValue = parseFloat(data.amount.replace(',', '.'));
+      }
+      
+      if (isNaN(amountValue) || amountValue <= 0) {
+        console.error('[For4Payments] Valor inválido:', data.amount);
+        amountValue = 19.80; // Valor padrão em casos de erro
+      }
+      
+      // Preparação dos dados para a API
+      const amount = Math.round(amountValue * 100); // Converter para centavos
+      const cpf = data.cpf ? data.cpf.replace(/\D/g, '') : ''; // Remover caracteres não numéricos do CPF
+      
+      // Verificar CPF
+      if (!cpf || cpf.length !== 11) {
+        throw new Error('CPF inválido - deve conter 11 dígitos');
+      }
+
+      // Formatar dados do pagamento
+      const additionalKit = data.additionalKit === true;
+      const paymentTitle = additionalKit ? 
+        "Kit Completo Elseve Liso dos Sonhos" : 
+        "Kit Elseve Liso dos Sonhos";
+        
+      // Formatação do telefone
+      let formattedPhone = '';
+      if (data.phone) {
+        formattedPhone = data.phone.replace(/\D/g, '');
+        if (formattedPhone.startsWith('55') && formattedPhone.length > 10) {
+          formattedPhone = formattedPhone.substring(2);
+        }
+      } else {
+        formattedPhone = '11996801234';
+      }
+      
+      // Preparar payload para envio à API, incluindo dados de endereço
+      // Vamos tentar enviar os dados no formato raiz do payload como algumas APIs preferem
+      let finalPayload = {
+        name: data.name,
+        email: data.email,
+        cpf: cpf,
+        phone: formattedPhone,
+        paymentMethod: "PIX",
+        amount: amount,
+        
+        // Campos de endereço no nível raiz do objeto
+        cep: data.cep || "",
+        street: data.street || "",
+        number: data.number || "",
+        complement: data.complement || "",
+        district: data.district || "",
+        city: data.city || "",
+        state: data.state || "",
+        country: "BR", // País fixo como Brasil
+        
+        // Incluindo itens no payload
+        items: [{
+          title: paymentTitle,
+          quantity: 1,
+          unitPrice: amount,
+          tangible: false
+        }],
+        
+        // Mantemos também o customer para compatibilidade
+        customer: {
+          name: data.name,
+          email: data.email,
+          cpf: cpf,
+          phone: formattedPhone,
+          // Campos de endereço duplicados no customer
+          cep: data.cep || "",
+          street: data.street || "",
+          number: data.number || "",
+          complement: data.complement || "",
+          district: data.district || "",
+          city: data.city || "",
+          state: data.state || ""
+        }
+      };
+      
+      console.log(`[For4Payments] Enviando requisição para: ${this.apiUrl}/transaction.purchase`);
+      console.log(`[For4Payments] Payload completo:`, JSON.stringify(finalPayload, null, 2));
+      
+      // Fazer a requisição direta para a API For4Payments
+      const response = await axios.post(
+        `${this.apiUrl}/transaction.purchase`,
+        finalPayload,
+        {
+          headers: this.getHeaders(),
+          timeout: 30000
+        }
+      );
+      
+      // Processar resposta
+      if (response.status === 200) {
+        const responseData = response.data;
+        console.log(`[For4Payments] Pagamento processado com sucesso`);
+        
+        // Mapear campos da resposta para o formato padronizado
+        return {
+          id: responseData.id || responseData.transactionId,
+          pixCode: responseData.pixCode || responseData.copy_paste || responseData.code,
+          pixQrCode: responseData.pixQrCode || responseData.qr_code_image,
+          expiresAt: responseData.expiresAt || responseData.expiration,
+          status: responseData.status || 'pending'
+        };
+      } else {
+        throw new Error(`Erro ao processar pagamento (Status: ${response.status})`);
+      }
+    } catch (error: any) {
+      // Log detalhado do erro para diagnóstico
+      console.error('Erro ao criar pagamento PIX:', error);
+      
+      if (error.response) {
+        // Log detalhado da resposta do servidor
+        console.error('Detalhes da resposta de erro:');
+        console.error(`Status: ${error.response.status}`);
+        console.error('Headers:', JSON.stringify(error.response.headers, null, 2));
+        console.error('Data:', JSON.stringify(error.response.data, null, 2));
+      }
+      
+      // Log dos dados que foram enviados para a API (sem informações sensíveis)
+      const dataSent = { ...data };
+      if (dataSent.cpf) dataSent.cpf = dataSent.cpf.substring(0, 3) + '***';
+      console.error('Dados enviados para API:', JSON.stringify(dataSent, null, 2));
+      
+      // Extrair mensagem de erro da resposta da API, se disponível
+      let errorMessage = 'Erro ao processar pagamento';
+      if (error.response && error.response.data) {
+        errorMessage = error.response.data.message || 
+                       error.response.data.error || 
+                       (Array.isArray(error.response.data.errors) 
+                         ? error.response.data.errors.join('; ') 
+                         : errorMessage);
+                         
+        // Adicionar código de erro ao log, se disponível
+        if (error.response.status) {
+          errorMessage += ` (Código: ${error.response.status})`;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Tentar incluir detalhes técnicos específicos
+      if (error.code) {
+        errorMessage += ` [${error.code}]`;
+      }
+      
+      throw new Error(errorMessage);
+    }
+  }
+}
+
+interface PaymentResponse {
+  id: string;
+  pixCode: string;
+  pixQrCode: string;
+  expiresAt?: string;
+  status: string;
+}
+
+// Controlador para endpoints de pagamento
+export async function createPayment(req: Request, res: Response): Promise<PaymentResponse | null> {
+  try {
+    const apiKey = process.env.FOR4PAYMENTS_API_KEY;
+    if (!apiKey) {
+      throw new Error('API key da For4Payments não configurada');
+    }
+
+    const api = new For4PaymentsAPI(apiKey);
+    const paymentData = req.body;
+    
+    // Validar dados de pagamento
+    if (!paymentData.name || !paymentData.email || !paymentData.cpf || !paymentData.amount) {
+      res.status(400).json({
+        error: 'Dados incompletos. Forneça nome, email, CPF e valor.'
+      });
+      return null;
+    }
+
+    // Criar pagamento PIX
+    const response = await api.createPixPayment(paymentData);
+    
+    // Retornar resultado
+    res.status(200).json(response);
+    
+    // Também retornamos o objeto para uso interno no routes.ts
+    return response as PaymentResponse;
+  } catch (error: any) {
+    console.error('Erro no endpoint de pagamento:', error);
+    res.status(500).json({
+      error: error.message || 'Erro interno ao processar pagamento'
+    });
+    return null;
+  }
+}

